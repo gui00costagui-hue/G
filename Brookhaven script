@@ -1,0 +1,232 @@
+--[[
+    GUI com senha, autenticação por nome, limite de tentativas,
+    sons de clique e erro, e animações suaves.
+
+    Senha correta: 7311
+--]]
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- ✅ Lista de jogadores permitidos
+local jogadoresAutorizados = {
+ ["SeuNomeAqui"] = true,  -- Substitua por nomes reais dos jogadores
+ ["JogadorTeste"] = true
+}
+
+-- ❌ Verificar se o jogador é autorizado
+if not jogadoresAutorizados[player.Name] then
+ local acessoNegadoGui = Instance.new("ScreenGui", playerGui)
+ acessoNegadoGui.Name = "AcessoNegado"
+
+ local aviso = Instance.new("TextLabel", acessoNegadoGui)
+ aviso.Size = UDim2.new(0.5, 0, 0.2, 0)
+ aviso.Position = UDim2.new(0.25, 0, 0.4, 0)
+ aviso.Text = "Acesso negado.\nVocê não está autorizado."
+ aviso.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ aviso.TextColor3 = Color3.new(1, 0, 0)
+ aviso.TextScaled = true
+ aviso.Font = Enum.Font.SourceSansBold
+
+ return
+end
+
+-- 🔊 Sons
+local function tocarSom(tipo)
+ local som = Instance.new("Sound")
+ som.Volume = 1
+ som.Parent = SoundService
+ if tipo == "click" then
+  som.SoundId = "rbxassetid://9113420778" -- clique suave
+ elseif tipo == "erro" then
+  som.SoundId = "rbxassetid://9113423076" -- erro curto
+ end
+ som:Play()
+ som.Ended:Connect(function() som:Destroy() end)
+end
+
+-- 🔁 Fade in/out
+local function fadeGui(guiObject, alvoTransparencia, tempo)
+ for _, obj in ipairs(guiObject:GetDescendants()) do
+  if obj:IsA("TextLabel") or obj:IsA("TextBox") or obj:IsA("TextButton") or obj:IsA("Frame") then
+   local prop = obj:IsA("Frame") and "BackgroundTransparency" or "TextTransparency"
+   local tween = TweenService:Create(obj, TweenInfo.new(tempo), {[prop] = alvoTransparencia})
+   tween:Play()
+  end
+ end
+end
+
+-- 🧾 Variáveis de controle
+local tentativasRestantes = 5
+local senhaCorreta = "7311"
+
+-- GUI de Login
+local loginGui = Instance.new("ScreenGui", playerGui)
+loginGui.Name = "LoginGui"
+
+local loginFrame = Instance.new("Frame", loginGui)
+loginFrame.Size = UDim2.new(0, 300, 0, 200)
+loginFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+loginFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+loginFrame.BorderSizePixel = 0
+loginFrame.BackgroundTransparency = 1
+
+local title = Instance.new("TextLabel", loginFrame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "Digite a Senha"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.BackgroundTransparency = 1
+title.TextTransparency = 1
+
+local passwordBox = Instance.new("TextBox", loginFrame)
+passwordBox.Position = UDim2.new(0.1, 0, 0.4, 0)
+passwordBox.Size = UDim2.new(0.8, 0, 0, 40)
+passwordBox.PlaceholderText = "Senha"
+passwordBox.Text = ""
+passwordBox.TextColor3 = Color3.new(0, 0, 0)
+passwordBox.Font = Enum.Font.SourceSans
+passwordBox.TextSize = 18
+passwordBox.BackgroundTransparency = 1
+passwordBox.TextTransparency = 1
+
+local errorMsg = Instance.new("TextLabel", loginFrame)
+errorMsg.Position = UDim2.new(0, 0, 0.7, 0)
+errorMsg.Size = UDim2.new(1, 0, 0, 30)
+errorMsg.Text = ""
+errorMsg.TextColor3 = Color3.fromRGB(255, 0, 0)
+errorMsg.BackgroundTransparency = 1
+errorMsg.Font = Enum.Font.SourceSans
+errorMsg.TextSize = 16
+errorMsg.TextTransparency = 1
+
+local submitButton = Instance.new("TextButton", loginFrame)
+submitButton.Position = UDim2.new(0.3, 0, 0.85, 0)
+submitButton.Size = UDim2.new(0.4, 0, 0, 30)
+submitButton.Text = "Entrar"
+submitButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+submitButton.TextColor3 = Color3.new(1, 1, 1)
+submitButton.Font = Enum.Font.SourceSansBold
+submitButton.TextSize = 18
+submitButton.BackgroundTransparency = 1
+submitButton.TextTransparency = 1
+
+-- Fade In inicial
+fadeGui(loginFrame, 0, 0.5)
+
+-- Interface principal com ScrollingFrame
+local function criarInterfacePrincipal()
+ local ScreenGui = Instance.new("ScreenGui", playerGui)
+ ScreenGui.Name = "BrookhavenStyleUI"
+
+ local ScrollingFrame = Instance.new("ScrollingFrame", ScreenGui)
+ ScrollingFrame.Size = UDim2.new(0, 300, 0, 400)
+ ScrollingFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+ ScrollingFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+ ScrollingFrame.BorderSizePixel = 0
+ ScrollingFrame.BackgroundTransparency = 1
+ ScrollingFrame.ScrollBarThickness = 6
+ ScrollingFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+ ScrollingFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+ ScrollingFrame.CanvasSize = UDim2.new(0, 0, 0, 600)
+
+ local layout = Instance.new("UIListLayout", ScrollingFrame)
+ layout.Padding = UDim.new(0, 10)
+ layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+ local Title = Instance.new("TextLabel", ScrollingFrame)
+ Title.Size = UDim2.new(1, -20, 0, 40)
+ Title.Text = "Painel do Jogador"
+ Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ Title.TextColor3 = Color3.new(1, 1, 1)
+ Title.Font = Enum.Font.SourceSansBold
+ Title.TextSize = 22
+ Title.BackgroundTransparency = 1
+ Title.TextTransparency = 1
+ Title.LayoutOrder = 0
+
+ -- Função para criar botões dentro do ScrollingFrame
+ local function criarBotao(nome, cor, callback)
+  local botao = Instance.new("TextButton", ScrollingFrame)
+  botao.Size = UDim2.new(1, -20, 0, 40)
+  botao.Text = nome
+  botao.BackgroundColor3 = cor
+  botao.TextColor3 = Color3.new(1, 1, 1)
+  botao.Font = Enum.Font.SourceSans
+  botao.TextSize = 18
+  botao.BackgroundTransparency = 1
+  botao.TextTransparency = 1
+  botao.LayoutOrder = layout:GetChildren() and #layout:GetChildren() or 1
+
+  botao.MouseButton1Click:Connect(function()
+   tocarSom("click")
+   callback()
+  end)
+ end
+
+ -- Botões do menu
+ criarBotao("Teleporte para a Praça", Color3.fromRGB(80, 80, 200), function()
+  local char = player.Character
+  if char then
+   char:MoveTo(Vector3.new(0, 5, 0))
+  end
+ end)
+
+ criarBotao("Aumentar Velocidade", Color3.fromRGB(80, 200, 80), function()
+  if player.Character then
+   local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+   if humanoid then
+    humanoid.WalkSpeed = 50
+   end
+  end
+ end)
+
+ criarBotao("Ativar Gravidade Baixa", Color3.fromRGB(200, 100, 80), function()
+  workspace.Gravity = 50
+ end)
+
+ criarBotao("Dar Ferramenta", Color3.fromRGB(100, 100, 200), function()
+  local tool = Instance.new("Tool")
+  tool.Name = "Espada Falsa"
+  tool.RequiresHandle = false
+  tool.CanBeDropped = true
+  tool.Parent = player.Backpack
+ end)
+
+ criarBotao("Fechar Interface", Color3.fromRGB(150, 50, 50), function()
+  fadeGui(ScreenGui, 1, 0.4)
+  wait(0.5)
+  ScreenGui:Destroy()
+ end)
+
+ -- Fade In
+ fadeGui(ScrollingFrame, 0, 0.5)
+end
+
+-- Lógica de login
+submitButton.MouseButton1Click:Connect(function()
+ tocarSom("click")
+ if tentativasRestantes <= 0 then return end
+
+ if passwordBox.Text == senhaCorreta then
+  fadeGui(loginFrame, 1, 0.5)
+  wait(0.5)
+  loginGui:Destroy()
+  criarInterfacePrincipal()
+ else
+  tocarSom("erro")
+  tentativasRestantes -= 1
+  if tentativasRestantes <= 0 then
+   errorMsg.Text = "Você excedeu o limite de tentativas."
+   submitButton.Visible = false
+   passwordBox.Visible = false
+  else
+   errorMsg.Text = "Senha incorreta. Tentativas restantes: " .. tentativasRestantes
+  end
+ end
+end)
